@@ -16,4 +16,10 @@ export class TravelPlan {
 
   @Column()
   countryCode!: string;
+
+  @Column()
+  userId!: number;
+
+  @Column({ default: '[]' })
+  expenses!: string;
 }

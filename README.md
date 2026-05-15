@@ -10,16 +10,6 @@ El sistema implementa una estrategia de caché local:
 - Si el país no existe, consulta la API externa RestCountries.
 - Luego guarda el país localmente para futuras consultas.
 
-La aplicación fue desarrollada utilizando:
-
-- NestJS
-- TypeORM
-- SQLite
-- Axios
-- Class Validator
-
----
-
 # Instalación del proyecto
 
 ## 1. Clonar el repositorio
@@ -60,12 +50,6 @@ npm install sqlite3
 npm run start:dev
 ```
 
-Si todo funciona correctamente, debe aparecer algo similar a:
-
-```bash
-Nest application successfully started
-```
-
 La API quedará ejecutándose en:
 
 ```bash
@@ -76,26 +60,14 @@ http://localhost:3000
 
 # Arquitectura interna
 
-La aplicación está dividida en dos módulos principales.
+La aplicación está dividida en cuatro módulos principales (dos en el preparcial y los otros realizados durante el parcial).
 
 ## CountriesModule
 
 Este módulo se encarga de administrar la información de países.
 
-Contiene:
 
-- `Country Entity`
-- `CountriesService`
-- `RestcountriesProvider`
-
-Este módulo NO expone endpoints públicos.
-
-Su responsabilidad es:
-
-1. Buscar un país en la base de datos local.
-2. Si no existe, consultar la API externa RestCountries.
-3. Guardar el país en SQLite.
-4. Retornar la información del país.
+Su responsabilidad es buscar un país en la base de datos local, si no existe, consultar la API externa RestCountries, guardar el país en SQLite y retornar la información del país.
 
 ---
 
@@ -103,48 +75,19 @@ Su responsabilidad es:
 
 Este módulo administra los planes de viaje.
 
-Contiene:
-
-- `TravelPlan Entity`
-- `TravelPlansService`
-- `TravelPlansController`
-- DTOs de validación
-
-Este módulo expone los endpoints públicos de la API:
-
-- Crear plan
-- Obtener todos los planes
-- Obtener un plan por id
-- Eliminar un plan
+Este módulo expone los endpoints públicos de la API, crear plan, obtener todos los planes, obtener un plan por id y eliminar un plan
 
 ---
 
-# Flujo de caché de países
+## MiddlewareModule
 
-Cuando un usuario crea un plan de viaje:
+Este modulo se encarga de verificar quien hizo la petición, a qué ruta entró y el método HTTP que utilizó. La forma de verificar que este módulo funciona es por medio de verificar que en la terminal donde se encuentra ejecutando la aplicación, aparezcan estas informaciones dadas por el middleware (npm run start:dev). 
 
-1. El cliente envía un código Alpha-3 del país.
-   Ejemplo:
+---
 
-```json
-"countryCode": "COL"
-```
+## UsersModule 
 
-2. `TravelPlansService` llama a `CountriesService`.
-
-3. `CountriesService` busca el país en SQLite.
-
-4. Si el país ya existe:
-   - Se reutiliza la información local.
-   - No se consume la API externa.
-
-5. Si el país NO existe:
-   - Se consulta `https://restcountries.com`
-   - Se obtiene la información del país.
-   - El país se guarda en SQLite.
-   - Luego se retorna.
-
-Esto permite reducir llamadas externas y mejorar el rendimiento.
+Este modulo se encarga de darle un "dueño" a los planes de viaje, con el fin de verificar quien lo creó, a quién le pertenece y quien debería administrarlo. 
 
 ---
 
@@ -173,18 +116,14 @@ POST /travel-plans
 
 ```bash
 curl -X POST http://localhost:3000/travel-plans \
--H "Content-Type: application/json" \
--d '{
-  "title":"Viaje a Colombia",
-  "startDate":"2025-06-01",
-  "endDate":"2025-06-15",
-  "countryCode":"COL"
-}'
+  -H "Content-Type: application/json" \
+  -H "x-user-id: 1" \
+  -d '{"title": "Viaje a Colombia", "startDate": "2025-06-01", "endDate": "2025-06-10", "countryCode": "CO", "userId": 1}'
 ```
 
 ---
 
-# Obtener todos los planes
+## Obtener todos los planes
 
 ### Endpoint
 
@@ -200,7 +139,7 @@ curl http://localhost:3000/travel-plans
 
 ---
 
-# Obtener un plan por ID
+## Obtener un plan por ID
 
 ### Endpoint
 
@@ -222,7 +161,7 @@ curl http://localhost:3000/travel-plans/1
 
 ---
 
-# Eliminar un plan
+## Eliminar un plan
 
 ### Endpoint
 
@@ -244,53 +183,104 @@ curl -X DELETE http://localhost:3000/travel-plans/1
 
 ---
 
-# Estructura del proyecto
+## Crear un usuario
 
-```text
-travel-api/
-├── src/
-│   ├── countries/
-│   ├── travel-plans/
-│   ├── app.module.ts
-│   └── main.ts
-├── .env
-├── package.json
-└── README.md
+### Ejemplo CURL
+
+```
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Juan", "email": "juan@test.com"}'
+```
+
+## Crear un plan de viaje 
+
+### Ejemplo CURL 
+
+```
+curl -X POST http://localhost:3000/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Juan", "email": "juan@test.com"}'
+```
+---
+
+## Agrega un gasto al plan
+
+### Ejemplo CURL 
+
+```
+curl -X POST http://localhost:3000/travel-plans/1/expenses \
+  -H "Content-Type: application/json" \
+  -H "x-user-id: 1" \
+  -d '{"description": "Hotel", "amount": 200, "category": "Alojamiento"}'
 ```
 
 ---
+
+## Consulta el plan con los gastos
+
+### Ejemplo CURL 
+
+```
+curl http://localhost:3000/travel-plans/1 \
+```
+---
+
+## Prueba del usuario inexistente
+
+### Ejemplo CURL
+
+```
+curl -X POST http://localhost:3000/travel-plans \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test", "startDate": "2025-06-01", "endDate": "2025-06-10", "countryCode": "CO", "userId": 999}'
+```
+
+---
+
+## Expense inválido 
+
+## Ejemplo CURL 
+
+```
+curl -X POST http://localhost:3000/travel-plans/1/expenses \
+-H "Content-Type: application/json" \
+-d '{
+  "description":"",
+  "amount":-10,
+  "category":""
+}'
+```
+---
+
+## Pais inexistente
+
+### Ejemplo CURL 
+
+```
+curl -X POST http://localhost:3000/travel-plans \
+-H "Content-Type: application/json" \
+-d '{
+  "title":"Test",
+  "startDate":"2025-06-01",
+  "endDate":"2025-06-10",
+  "countryCode":"XXX",
+  "userId":1
+}'
+```
 
 # Base de datos
 
 La aplicación utiliza SQLite.
 
-El archivo de base de datos se genera automáticamente:
+El archivo de base de datos se genera automáticamente, este es un archivo llamado travel.db.
 
-```text
-travel.db
-```
-
-Este archivo fue agregado al `.gitignore` para evitar subir datos locales al repositorio.
+Este archivo fue agregado al `.gitignore` para evitar subir datos locales al repositorio y seguir con la recomendación dada en el pie de página del parcial. 
 
 ---
 
-# Validaciones implementadas
+# Reporte de Cambios
 
-La API valida:
+Los gastos fueron implementados como un arreglo embebido dentro de la entidad TravelPlan. Para agregar un nuevo gasto, el sistema busca el plan de viaje en la base de datos, convierte el campo expenses desde JSON a un arreglo de objetos, agrega el nuevo gasto y luego guarda nuevamente el arreglo actualizado en formato JSON dentro de la base de datos. 
 
-- Campos obligatorios
-- Formato de fechas YYYY-MM-DD
-- Existencia válida del país mediante RestCountries
-- Conversión automática de códigos Alpha-3 a mayúsculas
-
----
-
-# Tecnologías utilizadas
-
-- NestJS
-- TypeScript
-- SQLite
-- TypeORM
-- Axios
-- Class Validator
-- REST Countries API
+LOS IDS PARA PARA LAS PRUEBAS DEBEN SER MODIFICADOS ACORDE A LO QUE SE ENCUENTRA (NO ALCANCÉ A REVISAR) YA QUE POR LAS PRUEBAS REALIZADAS DURANTE EL PARCIAL ESTO PUEDE FALLAR!

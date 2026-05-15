@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, Matches, IsNumber } from 'class-validator';
 
 export class CreateTravelPlanDto {
   @IsString()
@@ -7,17 +7,20 @@ export class CreateTravelPlanDto {
 
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'startDate must be YYYY-MM-DD',
+    message: 'startDate debe ser YYYY-MM-DD',
   })
   startDate!: string;
 
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'endDate must be YYYY-MM-DD',
+    message: 'endDate debe ser YYYY-MM-DD',
   })
   endDate!: string;
 
   @IsString()
   @IsNotEmpty()
   countryCode!: string;
+
+  @IsNumber()
+  userId!: number;
 }
